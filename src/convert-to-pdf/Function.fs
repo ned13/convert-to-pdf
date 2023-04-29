@@ -211,17 +211,18 @@ type Function(s3Client: IAmazonS3) =
 
                 
         // "Financial Sample.xlsx"
-        // let workflow = createWorkflow
-        //                    logInformation
-        //                    retrieveSrcFileFromS3'           
-        //                    toPdfByLibreOffice'             
-        //                    writePdfFileToS3'               
-                           
-        let workflow  = createWorkflow
-                            logInformation
-                            retrieveSrcFileFromTemp'
-                            toPdfNothing'
-                            writePdfFileToTmp'
+        let workflow = createWorkflow
+                           logInformation
+                           retrieveSrcFileFromS3'           
+                           toPdfByLibreOffice'             
+                           writePdfFileToS3'               
+
+        // local test workflow                           
+        // let workflow  = createWorkflow
+        //                     logInformation
+        //                     retrieveSrcFileFromTemp'
+        //                     toPdfByLibreOffice' // toPdfNothing'
+        //                     writePdfFileToTmp'
          
         // Null string should not exist in F#, Correct it before invoking workflow. 
         let fileName = event |> Option.ofNull |> Option.defaultValue ""                                                

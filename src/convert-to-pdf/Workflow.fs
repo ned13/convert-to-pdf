@@ -1,6 +1,7 @@
 module ConverToPdf.Workflow
 
 open System
+open System.Diagnostics
 open System.IO
 open ConvertToPdf.Workflow.Types
 open FsToolkit.ErrorHandling
@@ -75,6 +76,9 @@ let convertToPdfThenRename (logFunc: LogFunc) (toPdfFunc: ToPdfFunc) (srcFileCon
     }           
 }
 
+let prettyFormatTimeSpan (timeSpan: TimeSpan) =
+    $"%02d{timeSpan.Hours}:%02d{timeSpan.Minutes}:%02d{timeSpan.Seconds}.%03d{timeSpan.Milliseconds}"
+
 let createWorkflow
     (logFunc: LogFunc)
     (retrieveSrcFileFunc: RetrieveSrcFileFunc)
@@ -85,15 +89,37 @@ let createWorkflow
     let workflow = fun srcFileName -> asyncResult {
         
         let! supportedFileInfo = validateSupportedFileName srcFileName
-        let! retrievedFileContent = retrieveSrcFileFunc supportedFileInfo                
+        
+        let stopWatch = Stopwatch();
+        stopWatch.Start()        
+        let! retrievedFileContent = retrieveSrcFileFunc supportedFileInfo
+        stopWatch.Stop()
+        let retrieveSrcFileElapsed = stopWatch.Elapsed
+        
+        let stopWatch = Stopwatch();
+        stopWatch.Start()
         let! convertedFileContent = convertSubWorkflowFunc retrievedFileContent
+        stopWatch.Stop()
+        let convertSubWorkflowElapsed = stopWatch.Elapsed 
+
+        let stopWatch = Stopwatch();
+        stopWatch.Start()
         let! wroteFileContentInfo = writeToStorageFunc convertedFileContent
+        stopWatch.Stop()
+        let writeToStorageElapsed = stopWatch.Elapsed
+        let totalElapsed = retrieveSrcFileElapsed + convertSubWorkflowElapsed + writeToStorageElapsed
         
         return {
-            SrcContentType = retrievedFileContent.ContentType
-            SrcContentLength = retrievedFileContent.ContentLength
-            DstContentType = wroteFileContentInfo.ContentType
-            DstContentLength = wroteFileContentInfo.ContentLength
+            SrcFileContentType = retrievedFileContent.ContentType
+            SrcFileContentLength = retrievedFileContent.ContentLength
+            SrcFileName = retrievedFileContent.RetrievedFileInfo |> ExistingFileInfo.getFileName
+            DstFileContentType = wroteFileContentInfo.ContentType
+            DstFileContentLength = wroteFileContentInfo.ContentLength
+            DstFileName = wroteFileContentInfo.StoredFileInfo |> ExistingFileInfo.getFileName
+            RetrieveSrcFileElapsed = retrieveSrcFileElapsed |> prettyFormatTimeSpan
+            ConvertSubWorkflowElapsed = convertSubWorkflowElapsed |> prettyFormatTimeSpan
+            WriteToStorageElapsed = writeToStorageElapsed |> prettyFormatTimeSpan
+            TotalElapsed = totalElapsed |> prettyFormatTimeSpan
         }                 
     }
     

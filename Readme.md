@@ -1,5 +1,7 @@
 # Convert to PDF with AWS Lambda Function and F# 
 
+[TOC]
+
 ## Introduction
 This project is inspired by Madhav Palshikar's article [Converting Office Docs to PDF with AWS Lambda](https://madhavpalshikar.medium.com/converting-office-docs-to-pdf-with-aws-lambda-372c5ac918f1). The primary goal of this project is to create a POC solution for converting specified kind of documents, such as Microsoft Word, Excel, PowerPoint and csv, to PDF format using AWS Lambda Functions. In this project, I use .NET 6 and F# to develop the same functionality as described in the original article, but with some key differences.
 
@@ -134,6 +136,16 @@ dotnet lambda invoke-function convert-to-pdf --payload "sample-docx-file-for-tes
 
 
 ### Configure a Role
+- The policy my account got for creating AWS Lambda Function and configure role for it:
+    * "IAMFullAccess" : for modifying policy.
+    * "AWSLambda_FullAccess" : for creating Lambda Function.
+    * "AmazonS3FullAccess" : for accessing S3. 
+
+- After you have privilege to create and set up a role, configure a role which allow Lambda Function to access S3
+   * s3:GetObject
+   * s3:PutObject
+
+- You can deploy a function with default role then modify that role to grant the access of S3
 
 ### Prepare S3 Bucket
 - I got AmazonS3FullAccess, you should have getObject and putObject at least.

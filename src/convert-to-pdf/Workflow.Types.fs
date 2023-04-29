@@ -34,10 +34,16 @@ type ConversionResult = {
 }
     
 type WorkflowResult = {
-    SrcContentType: string
-    SrcContentLength: int64
-    DstContentType: string
-    DstContentLength: int64
+    SrcFileContentType: string
+    SrcFileContentLength: int64
+    SrcFileName: string
+    DstFileContentType: string
+    DstFileContentLength: int64
+    DstFileName: string
+    RetrieveSrcFileElapsed: string
+    ConvertSubWorkflowElapsed: string
+    WriteToStorageElapsed: string
+    TotalElapsed: string
 }
 
 type LogFunc = string -> unit
