@@ -1,0 +1,33 @@
+<Project>
+    <PropertyGroup>
+        <!-- Need to build project without solution for dock image building, so can't use this. -->
+        <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+    <!--
+    <ItemGroup>
+        <PackageVersion Include="Amazon.Lambda.Core" Version="2.1.0"/>
+        <PackageVersion Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.3.1" />
+        <PackageVersion Include="Amazon.Lambda.S3Events" Version="3.0.0" />
+        <PackageVersion Include="AWSSDK.S3" Version="3.7.103.33" />
+        <PackageVersion Include="FSharp.Control.FusionTasks" Version="2.6.0" />
+        <PackageVersion Include="FsToolkit.ErrorHandling.TaskResult" Version="3.2.0" />
+        <PackageVersion Include="FSharp.Control.FusionTasks" Version="2.6.0" />
+        <PackageVersion Include="SharpCompress" Version="0.33.0" />
+    </ItemGroup>
+    -->
+
+    <!-- Test Package Versions -->
+    <!--
+    <ItemGroup>
+        <PackageVersion Include="Amazon.Lambda.TestUtilities" Version="2.0.0" />
+        <PackageVersion Include="AWSSDK.SSO" Version="3.7.100.103" />
+        <PackageVersion Include="AWSSDK.SSOOIDC" Version="3.7.100.103" />
+        <PackageVersion Include="FSharp.Control.FusionTasks" Version="2.6.0" />
+        <PackageVersion Include="FsUnit.xUnit" Version="5.2.0" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
+        <PackageVersion Include="xunit" Version="2.4.2" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="2.4.5" />
+    </ItemGroup>
+    -->
+
+</Project>

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net6.0</TargetFramework>
+        <RootNamespace>ConvertToPdf.Tests</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Amazon.Lambda.Core" Version="2.1.0" />
+        <PackageReference Include="Amazon.Lambda.TestUtilities" Version="2.0.0" />
+        <PackageReference Include="Amazon.Lambda.S3Events" Version="3.0.0" />
+        <PackageReference Include="AWSSDK.S3" Version="3.7.103.33" />
+        <PackageReference Include="AWSSDK.SSO" Version="3.7.100.103" />
+        <PackageReference Include="AWSSDK.SSOOIDC" Version="3.7.100.103" />
+        <PackageReference Include="FsCheck.Xunit" Version="2.16.5" />
+        <PackageReference Include="FSharp.Control.FusionTasks" Version="2.6.0" />
+        <PackageReference Include="FsToolkit.ErrorHandling.TaskResult" Version="3.2.0" />
+        <PackageReference Include="FsUnit.xUnit" Version="5.2.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
+        <PackageReference Include="xunit" Version="2.4.2" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\convert-to-pdf\convert-to-pdf.fsproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Include="WorkflowTest.fs" />
+        <Compile Include="FunctionTest.fs" />
+    </ItemGroup>
+</Project>
