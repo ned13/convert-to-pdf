@@ -1,4 +1,4 @@
-# AWS Lambda Simple S3 Function Project
+# Convert to PDF with AWS Lambda Function and F# 
 
 ## Introduction
 This project is inspired by Madhav Palshikar's article [Converting Office Docs to PDF with AWS Lambda](https://madhavpalshikar.medium.com/converting-office-docs-to-pdf-with-aws-lambda-372c5ac918f1). The primary goal of this project is to create a POC solution for converting specified kind of documents, such as Microsoft Word, Excel, PowerPoint and csv, to PDF format using AWS Lambda Functions. In this project, I use .NET 6 and F# to develop the same functionality as described in the original article, but with some key differences.
