@@ -79,6 +79,15 @@ let convertToPdfThenRename (logFunc: LogFunc) (toPdfFunc: ToPdfFunc) (srcFileCon
 let prettyFormatTimeSpan (timeSpan: TimeSpan) =
     $"%02d{timeSpan.Hours}:%02d{timeSpan.Minutes}:%02d{timeSpan.Seconds}.%03d{timeSpan.Milliseconds}"
 
+let withExecutionTime (aFunc: unit -> Async<Result<'a, 'b>>) = 
+    fun () -> asyncResult {
+        let stopWatch = Stopwatch()
+        stopWatch.Start()
+        let! r = aFunc ()
+        stopWatch.Stop()
+        return r, stopWatch.Elapsed
+    }
+
 let createWorkflow
     (logFunc: LogFunc)
     (retrieveSrcFileFunc: RetrieveSrcFileFunc)
@@ -89,26 +98,18 @@ let createWorkflow
     let workflow = fun srcFileName -> asyncResult {
         
         let! supportedFileInfo = validateSupportedFileName srcFileName
-        
-        let stopWatch = Stopwatch();
-        stopWatch.Start()        
-        let! retrievedFileContent = retrieveSrcFileFunc supportedFileInfo
-        stopWatch.Stop()
-        let retrieveSrcFileElapsed = stopWatch.Elapsed
-        
-        let stopWatch = Stopwatch();
-        stopWatch.Start()
-        let! convertedFileContent = convertSubWorkflowFunc retrievedFileContent
-        stopWatch.Stop()
-        let convertSubWorkflowElapsed = stopWatch.Elapsed 
 
-        let stopWatch = Stopwatch();
-        stopWatch.Start()
-        let! wroteFileContentInfo = writeToStorageFunc convertedFileContent
-        stopWatch.Stop()
-        let writeToStorageElapsed = stopWatch.Elapsed
-        let totalElapsed = retrieveSrcFileElapsed + convertSubWorkflowElapsed + writeToStorageElapsed
+        // Use function decorator technique
+        let retrieveSrcFileFunc' = (fun () -> retrieveSrcFileFunc supportedFileInfo) |> withExecutionTime        
+        let! retrievedFileContent, retrieveSrcFileElapsed =  retrieveSrcFileFunc' () 
+
+        let convertSubWorkflowFunc' = (fun () -> convertSubWorkflowFunc retrievedFileContent) |> withExecutionTime                 
+        let! convertedFileContent, convertSubWorkflowElapsed = convertSubWorkflowFunc' () 
+ 
+        let writeToStorageFunc' = (fun () -> writeToStorageFunc convertedFileContent) |> withExecutionTime
+        let! wroteFileContentInfo, writeToStorageElapsed = writeToStorageFunc' ()
         
+        let totalElapsed = retrieveSrcFileElapsed + convertSubWorkflowElapsed + writeToStorageElapsed        
         return {
             SrcFileContentType = retrievedFileContent.ContentType
             SrcFileContentLength = retrievedFileContent.ContentLength

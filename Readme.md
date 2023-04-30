@@ -118,14 +118,14 @@ The only way I can run LibreOffice successfully is by installing LibreOffice an 
 ### Deploy to ECR then deploy to Function by command
 ```bash
 # One line to build image, push to ECR then deploy function, it can save a lot of time.
-dotnet lambda deploy-function --function-name convert-to-pdf --package-type image --function-architecture x86_64 --function-memory-size 512 --function-timout 30
+dotnet lambda deploy-function --function-name convert-to-pdf --package-type image --function-architecture x86_64 --function-memory-size 512 --function-timeout 30
 
 # Invoke function from cli to verify
 dotnet lambda invoke-function convert-to-pdf --payload "Financial\u0020Sample.xlsx"  
 dotnet lambda invoke-function convert-to-pdf --payload "sample-docx-file-for-testing.docx"
 ```
 
-- Need to specify memory size and timout, otherwise the default would not be appropriate.
+- Need to specify memory size and timeout, otherwise the default would not be appropriate.
 
 ### Deploy to ECR then depoly to Function by UI
 - Use `dotnet lambda push-image` to publish image to ECR the image name would be the project name by default.

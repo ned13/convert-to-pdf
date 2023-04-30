@@ -169,10 +169,11 @@ type Function(s3Client: IAmazonS3) =
                 StoredFileInfo = convertedFileContent.ConvertedFileInfo
                 StoredPath = $"{bucketName}/{key}"     
             }        
-    }    
-    
-    
+    }        
+                       
+    // Constructor
     new() = Function(new AmazonS3Client())
+        
     
     /// <summary>
     /// This method is called for every Lambda invocation. This method takes in an S3 event object and can be used
@@ -208,16 +209,14 @@ type Function(s3Client: IAmazonS3) =
         let writePdfFileToTmp' = writePdfFileToTmp >> AsyncResult.retn       
         let writePdfFileToS3' = writePdfFileToS3 s3Client logInformation >> Async.AwaitTask
         
-
                 
-        // "Financial Sample.xlsx"
         let workflow = createWorkflow
                            logInformation
                            retrieveSrcFileFromS3'           
                            toPdfByLibreOffice'             
                            writePdfFileToS3'               
 
-        // local test workflow                           
+        // local test workflow, use "Financial Sample.xlsx" to test                            
         // let workflow  = createWorkflow
         //                     logInformation
         //                     retrieveSrcFileFromTemp'
@@ -229,21 +228,7 @@ type Function(s3Client: IAmazonS3) =
         let! workflowResult = workflow fileName                                                                          
         return match workflowResult with
                 | Ok r -> r.ToString()
-                | Error err -> err.ToString()
-        
-        // let s3Event = event.Records.Item(0).S3
-        //
-        // sprintf "Processing object %s from bucket %s" s3Event.Object.Key s3Event.Bucket.Name
-        // |> context.Logger.LogInformation
-        //
-        // let! response =
-        //     s3Client.GetObjectMetadataAsync(s3Event.Bucket.Name, s3Event.Object.Key)
-        //     |> Async.AwaitTask
-        //
-        // sprintf "Content Type %s" response.Headers.ContentType
-        // |> context.Logger.LogInformation
-        //
-        // return response.Headers.ContentType
+                | Error err -> err.ToString()        
     }
     
     member __.ReadFileFromS3 = retrieveSrcFileFromS3
