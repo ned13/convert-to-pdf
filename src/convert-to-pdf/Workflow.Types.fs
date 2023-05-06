@@ -54,13 +54,19 @@ type Workflow = string -> Async<Result<WorkflowResult, string>>
 
 
 module SupportedFileInfo =
+    let supportedExtensions = [ ".docx"; ".xlsx"; ".pptx"; ".csv" ]
     let value (SupportedFileInfo fi) = fi
-    let create supportedFileExts filePathName  =
-        let fi = FileInfo(filePathName)        
-        if supportedFileExts |> List.exists (fun ext -> ext = fi.Extension) then
-            Ok (SupportedFileInfo fi)
-        else
-            Error $"{filePathName} is not in supported format {supportedFileExts}"
+    let create filePathName  =
+        try 
+            let fi = FileInfo(filePathName)
+            if supportedExtensions |> List.exists (fun ext -> ext = fi.Extension) then
+                Ok (SupportedFileInfo fi)
+            else
+                Error $"{filePathName} is not in supported format {supportedExtensions}"            
+        with
+        |  ex -> Error $"{filePathName} is not valid file path name. reason: {ex.Message}"
+        
+
             
     let getFileName (SupportedFileInfo fi) = fi.Name            
 
@@ -73,8 +79,11 @@ module ExistingFileInfo =
         | false -> Error $"File {fileInfo.FullName} doesn't exist. {nameof(ExistingFileInfo)} can't be created."        
 
     let create filePathName =
-        let fileInfo = FileInfo(filePathName)
-        createFromFileInfo fileInfo    
+        try
+            let fileInfo = FileInfo(filePathName)
+            createFromFileInfo fileInfo
+        with
+        | ex -> Error $"{filePathName} is not valid file path name. reason: {ex.Message}"
             
     let getFilePathName (ExistingFileInfo fi) = fi.FullName
                 

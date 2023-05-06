@@ -24,7 +24,8 @@
         <ProjectReference Include="..\..\src\convert-to-pdf\convert-to-pdf.fsproj" />
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="WorkflowTest.fs" />
-        <Compile Include="FunctionTest.fs" />
+        <Compile Include="Workflow.Types.Test.fs" />
+        <Compile Include="Workflow.Test.fs" />
+        <Compile Include="Function.Test.fs" />
     </ItemGroup>
 </Project>

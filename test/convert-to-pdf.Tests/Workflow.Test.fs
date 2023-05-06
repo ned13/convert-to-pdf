@@ -15,6 +15,16 @@ open FsCheck.Xunit
 
 
 module WorkflowTest =
+    let supportedExtensions = [ ".abc"; ".def"; "ghi" ]
+    let emptyExtension = [ ".docx"; ".xlsx"; "pptx"; ".csv" ]
+    
+    [<Fact>]
+    let ``create successfully`` () =
+        let result = validateSupportedFileName ""
+
+        match result with
+        | Ok _ -> failwith "Expected an error for an empty file name"
+        | Error errMsg -> errMsg |> should equal "No file name"    
     
     [<Property>]
     let ``Test validateSupportedFileName with non-empty file name`` (nonEmptyFileName: NonEmptyString) =

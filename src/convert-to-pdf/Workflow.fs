@@ -6,8 +6,8 @@ open System.IO
 open ConvertToPdf.Workflow.Types
 open FsToolkit.ErrorHandling
 
-let supportedExtensions = [ ".docx"; ".xlsx"; "pptx"; ".csv" ]
-let createSupportedInfo = SupportedFileInfo.create supportedExtensions
+
+let createSupportedInfo = SupportedFileInfo.create
 let mediaTypeNameDocx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 let mediaTypeNameXlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
