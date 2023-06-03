@@ -7,7 +7,7 @@ open ConvertToPdf.Workflow.Types
 open FsToolkit.ErrorHandling
 
 
-let createSupportedInfo = SupportedFileInfo.create
+
 let mediaTypeNameDocx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 let mediaTypeNameXlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -16,70 +16,94 @@ let mediaTypeNameCsv = "text/csv"
 
 let mediaTypeNamePdf = "application/pdf"
 
-let validateSupportedFileName fileName = result {
-    match String.IsNullOrEmpty(fileName) with
-    | true -> return! Error "No file name"
-    | false ->        
-        let! supportedFi = createSupportedInfo fileName 
-        return supportedFi
-}
-        
-let determineContentType fileName =
+let parseSupportedFileInfo = SupportedFileInfo.create
+
+
+let internal determineContentType fileName =
     match fileName with
-    | null -> Error "No file name"
+    | null | "" -> Error "No file name"
     | fn ->
         let fi = FileInfo(fn)
         let ext = fi.Extension
         match ext.ToLower() with
         | ".docx" -> Ok mediaTypeNameDocx
         | ".xlsx" -> Ok mediaTypeNameXlsx
-        | ".csv" -> Ok mediaTypeNameCsv
         | ".pptx" -> Ok mediaTypeNamePptx
+        | ".csv" -> Ok mediaTypeNameCsv
         | ".pdf" -> Ok mediaTypeNamePdf
-        | notSupported -> Error $"Not supported extension {notSupported}"
-    
-let getNoExtFileName: string -> string = Path.GetFileNameWithoutExtension
+        | unSupported -> Error $"Unsupported file extension {unSupported}"
 
-let genConvertedFileName (fileInfo: FileInfo) =
+let internal getNoExtFileName: string -> string = Path.GetFileNameWithoutExtension
+
+let internal genConvertedFileName (fileInfo: FileInfo) =
     let fileName = getNoExtFileName fileInfo.Name
     $"{fileName}-{DateTime.Now.Ticks}{fileInfo.Extension}"
 
-let mapError errorMessage = 
-    Result.mapError (fun err -> $"{errorMessage} reason: {err}")    
+let mapError errorMessage =
+    Result.mapError (fun err -> $"{errorMessage} reason: {err}")
 
-let convertToPdfThenRename (logFunc: LogFunc) (toPdfFunc: ToPdfFunc) (srcFileContent: RetrievedFileContent) = asyncResult {
-    let srcFilePathName = srcFileContent.RetrievedFileInfo |> ExistingFileInfo.getFilePathName 
-    let! toPdfResult = toPdfFunc srcFilePathName 
-    let convertedFilePathName = toPdfResult.DstFileInfo |> ExistingFileInfo.getFilePathName
-    logFunc $"Checking converted file {convertedFilePathName}..."
-        
-    // Rename to given file name
-    let convertedFileInfo = toPdfResult.DstFileInfo
-    let convertedFilePathName = convertedFileInfo |> ExistingFileInfo.getFilePathName
-    let dstFileName = genConvertedFileName (convertedFileInfo |> ExistingFileInfo.value)
-    let dstFilePathName = $"/tmp/{dstFileName}"
-    logFunc $"Renaming converted file name from {convertedFilePathName} to {dstFilePathName}."
-    File.Move(convertedFilePathName, dstFilePathName)         
-    // let! _ = executeBashShellCommandWithResult $"mv {convertedFileInfo.FullName} {dstFilePathName}"
-        
-    // Check rename result
-    let! dstFileInfo = ExistingFileInfo.create dstFilePathName
-                        |> mapError $"Rename to {dstFilePathName} failed."
-                                                
-    let! contentType = dstFileInfo
-                       |> ExistingFileInfo.getFileName
-                       |> determineContentType
-    return {
-        ContentType = contentType
-        ContentLength = dstFileInfo |> ExistingFileInfo.getFileLength
-        ConvertedFileInfo = dstFileInfo
-    }           
-}
 
-let prettyFormatTimeSpan (timeSpan: TimeSpan) =
+
+
+
+
+let internal renameExistingFile srcExistingFileInfo dstFilePathName =
+    let srcFilePathName = srcExistingFileInfo |> ExistingFileInfo.getFilePathName
+    let moveFunc dstFilePathName srcFilePathName =
+        // Use command line to rename file, but use F# File.Move instead
+        // let! _ = executeBashShellCommandWithResult $"mv {dstFilePathName} {dstFilePathName'}"
+        File.Move(srcFilePathName, dstFilePathName)
+        dstFilePathName
+
+    try
+        srcFilePathName
+            |> moveFunc dstFilePathName
+            |> ExistingFileInfo.create
+    with
+    | ex -> Result.Error $"File move operation failed with exception: {ex.Message}"
+
+let internal convertToPdf (logFunc: LogFunc) (toPdfFunc: ToPdfFunc) (srcFileContent: RetrievedFileContent) =
+    asyncResult {
+        let srcFilePathName = srcFileContent.RetrievedFileInfo |> ExistingFileInfo.getFilePathName
+        let! toPdfResult = toPdfFunc srcFilePathName
+        let convertedFilePathName = toPdfResult.DstFileInfo |> ExistingFileInfo.getFilePathName
+        logFunc $"Checking converted file {convertedFilePathName}..."
+        return toPdfResult
+    }
+
+let internal renameConvertedToDstFileImpl renameExistingFile determineContentType
+    (logFunc: LogFunc) (toPdfResult: ConversionResult) =
+     result {
+        let convertedFileInfo = toPdfResult.DstFileInfo
+        let convertedFilePathName = convertedFileInfo |> ExistingFileInfo.getFilePathName
+        let dstFileName = convertedFileInfo
+                          |> ExistingFileInfo.value
+                          |> genConvertedFileName
+        let dstFilePathName = $"/tmp/{dstFileName}"
+        logFunc $"Renaming converted file name from {convertedFilePathName} to {dstFilePathName}."
+
+        let! dstFileInfo = dstFilePathName
+                            |> renameExistingFile convertedFileInfo
+                            |> mapError $"Rename to {dstFilePathName} failed."
+
+        let! contentType = dstFileInfo
+                           |> ExistingFileInfo.getFileName
+                           |> determineContentType
+                           |> mapError $"Destination file is not supported."
+        return {
+            ContentType = contentType
+            ContentLength = dstFileInfo |> ExistingFileInfo.getFileLength
+            ConvertedFileInfo = dstFileInfo
+        }
+    }
+
+let internal renameConvertedToDstFile (logFunc: LogFunc) (toPdfResult: ConversionResult) =
+     renameConvertedToDstFileImpl renameExistingFile determineContentType logFunc toPdfResult
+
+let internal prettyFormatTimeSpan (timeSpan: TimeSpan) =
     $"%02d{timeSpan.Hours}:%02d{timeSpan.Minutes}:%02d{timeSpan.Seconds}.%03d{timeSpan.Milliseconds}"
 
-let withExecutionTime (aFunc: unit -> Async<Result<'a, 'b>>) = 
+let private withExecutionTime (aFunc: unit -> Async<Result<'a, 'b>>) =
     fun () -> asyncResult {
         let stopWatch = Stopwatch()
         stopWatch.Start()
@@ -93,23 +117,29 @@ let createWorkflow
     (retrieveSrcFileFunc: RetrieveSrcFileFunc)
     (toPdfFunc: ToPdfFunc)
     (writeToStorageFunc: WritePdfFileToStorage) : Workflow =
-    
-    let convertSubWorkflowFunc = convertToPdfThenRename logFunc toPdfFunc
+
     let workflow = fun srcFileName -> asyncResult {
-        
-        let! supportedFileInfo = validateSupportedFileName srcFileName
+
+        let! supportedFileInfo = parseSupportedFileInfo srcFileName
 
         // Use function decorator technique
-        let retrieveSrcFileFunc' = (fun () -> retrieveSrcFileFunc supportedFileInfo) |> withExecutionTime        
-        let! retrievedFileContent, retrieveSrcFileElapsed =  retrieveSrcFileFunc' () 
+        let retrieveSrcFileFunc' = (fun () -> retrieveSrcFileFunc supportedFileInfo) |> withExecutionTime
+        let! retrievedFileContent, retrieveSrcFileElapsed =  retrieveSrcFileFunc' ()
 
-        let convertSubWorkflowFunc' = (fun () -> convertSubWorkflowFunc retrievedFileContent) |> withExecutionTime                 
-        let! convertedFileContent, convertSubWorkflowElapsed = convertSubWorkflowFunc' () 
- 
+        let convertToPdf' = (fun () -> convertToPdf logFunc toPdfFunc retrievedFileContent) |> withExecutionTime
+        let! toPdfResult, convertToPdfElapsed = convertToPdf' ()
+
+        let renameConvertedToDstFile' = (fun () -> renameConvertedToDstFile logFunc toPdfResult |> Async.retn)
+                                        |> withExecutionTime
+        let! convertedFileContent, renameConvertedToDstFileElapsed = renameConvertedToDstFile' ()
+
         let writeToStorageFunc' = (fun () -> writeToStorageFunc convertedFileContent) |> withExecutionTime
         let! wroteFileContentInfo, writeToStorageElapsed = writeToStorageFunc' ()
-        
-        let totalElapsed = retrieveSrcFileElapsed + convertSubWorkflowElapsed + writeToStorageElapsed        
+
+        let totalElapsed = retrieveSrcFileElapsed
+                           + convertToPdfElapsed
+                           + renameConvertedToDstFileElapsed
+                           + writeToStorageElapsed
         return {
             SrcFileContentType = retrievedFileContent.ContentType
             SrcFileContentLength = retrievedFileContent.ContentLength
@@ -118,11 +148,12 @@ let createWorkflow
             DstFileContentLength = wroteFileContentInfo.ContentLength
             DstFileName = wroteFileContentInfo.StoredFileInfo |> ExistingFileInfo.getFileName
             RetrieveSrcFileElapsed = retrieveSrcFileElapsed |> prettyFormatTimeSpan
-            ConvertSubWorkflowElapsed = convertSubWorkflowElapsed |> prettyFormatTimeSpan
+            ConvertSubWorkflowElapsed = convertToPdfElapsed + renameConvertedToDstFileElapsed
+                                        |> prettyFormatTimeSpan
             WriteToStorageElapsed = writeToStorageElapsed |> prettyFormatTimeSpan
             TotalElapsed = totalElapsed |> prettyFormatTimeSpan
-        }                 
+        }
     }
-    
+
     workflow
 

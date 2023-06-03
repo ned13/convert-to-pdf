@@ -16,6 +16,7 @@
         <PackageReference Include="Amazon.Lambda.S3Events" Version="3.0.0" />
         <PackageReference Include="AWSSDK.S3" Version="3.7.103.33" />
         <PackageReference Include="FSharp.Control.FusionTasks" Version="2.6.0" />
+        <PackageReference Include="FSharpPlus" Version="1.4.1" />
         <PackageReference Include="FsToolkit.ErrorHandling.TaskResult" Version="3.2.0" />
     </ItemGroup>
 
@@ -29,4 +30,10 @@
         <Content Include="aws-lambda-tools-defaults.json" />
         <Content Include="Dockerfile" />
     </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>convert-to-pdf.Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>    
 </Project>

@@ -1,4 +1,4 @@
-module ConvertToPdf.Workflow.Types.Tests
+module ConvertToPdf.Workflow.TypesTest
 
 open System
 open System.Collections.Generic
@@ -29,19 +29,19 @@ module SupportedFileInfo =
                     yield [| "/1a/2b/3c/agooz3.pptx" |]
                     yield [| "Iam Windows\Path\Pa/ago soz3.csv" |]
                 }
-                    
+
         [<Theory>]
         [<MemberData(nameof SuccessfulSample.Data, MemberType=typeof<SuccessfulSample>)>]
-        let ``should return a SupportedFileInfo`` (sampleFilePathName: string) =        
-            let result = SupportedFileInfo.create sampleFilePathName            
+        let ``should return a SupportedFileInfo`` (sampleFilePathName: string) =
+            let result = SupportedFileInfo.create sampleFilePathName
             match result with
-            | Ok r ->            
+            | Ok r ->
                 let expectedFi = FileInfo(sampleFilePathName)
-                let actualFi = r |> SupportedFileInfo.value            
-                actualFi |> verifyEquivalentFileInfo expectedFi 
+                let actualFi = r |> SupportedFileInfo.value
+                actualFi |> verifyEquivalentFileInfo expectedFi
             | Error e ->
                 Assert.Fail("This should not happen")
-                
+
         type NotSupportedExtensionSample =
             static member Data() : IEnumerable<obj[]> =
                 seq {
@@ -50,11 +50,11 @@ module SupportedFileInfo =
                     yield [| "/1a/2b/3c/agooz3.ppt" |]
                     yield [| "Iam Windows\Path\Pa/ago soz3.csvaa" |]
                     yield [| " " |]
-                    yield [| "   " |]                
-                }            
+                    yield [| "   " |]
+                }
 
         [<Theory>]
-        [<MemberData(nameof NotSupportedExtensionSample.Data, MemberType=typeof<NotSupportedExtensionSample>)>]           
+        [<MemberData(nameof NotSupportedExtensionSample.Data, MemberType=typeof<NotSupportedExtensionSample>)>]
         let ``should return an error with not supported extension`` (sampleFilePathName: string) =
             let result = SupportedFileInfo.create sampleFilePathName
             match result with
@@ -67,7 +67,7 @@ module SupportedFileInfo =
                 seq {
                     yield [| "" |]
                     yield [| null |]
-                }            
+                }
 
         [<Theory>]
         [<MemberData(nameof InvalidPathSample.Data, MemberType=typeof<InvalidPathSample>)>]
@@ -88,9 +88,9 @@ module ExistingFileInfo =
             | Ok existFi ->
                 let expectedFi = sampleFileInfo
                 let actualFi = existFi |> ExistingFileInfo.value
-                actualFi |> verifyEquivalentFileInfo expectedFi                    
+                actualFi |> verifyEquivalentFileInfo expectedFi
             | Error e -> Assert.Fail("This should not happen")
-            
+
         [<Fact>]
         let ``should return an error with non existing file`` () =
             let tempFile = Path.GetTempFileName()
@@ -100,7 +100,7 @@ module ExistingFileInfo =
             match result with
             | Ok _ -> Assert.Fail("This should not happen")
             | Error e -> e |> should haveSubstring $"File {nonExistingFileInfo.FullName} doesn't exist."
-            
+
     module Create =
         [<Fact>]
         let ``should return an ExistingFileInfo`` () =
@@ -110,16 +110,16 @@ module ExistingFileInfo =
             | Ok existFi ->
                 let expectedFi = FileInfo(tempFile)
                 let actualFi = existFi |> ExistingFileInfo.value
-                actualFi |> verifyEquivalentFileInfo expectedFi                    
+                actualFi |> verifyEquivalentFileInfo expectedFi
             | Error e -> Assert.Fail("This should not happen")
 
-        
+
         type InvalidPathSample =
             static member Data() : IEnumerable<obj[]> =
                 seq {
                     yield [| "" |]
                     yield [| null |]
-                }                    
+                }
         [<Theory>]
         [<MemberData(nameof InvalidPathSample.Data, MemberType=typeof<InvalidPathSample>)>]
         let ``should return an error with invalid file path name`` (sampleFilePathName: string) =
@@ -127,4 +127,3 @@ module ExistingFileInfo =
             match result with
             | Ok _ -> Assert.Fail("This should not happen")
             | Error e -> e |> should haveSubstring $" is not valid file path name."
-            
