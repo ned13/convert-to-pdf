@@ -2,14 +2,14 @@
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;
   &lt;Assembly Path="/Users/ned.wu.at.work/.nuget/packages/fstoolkit.errorhandling/3.2.0/lib/netstandard2.1/FsToolkit.ErrorHandling.dll" /&gt;
 &lt;/AssemblyExplorer&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=46cf704b_002D8743_002D4697_002D8942_002Da5a915c5a83f/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="WorkflowTest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=46cf704b_002D8743_002D4697_002D8942_002Da5a915c5a83f/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="WorkflowTest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
     &lt;TestId&gt;xUnit::F9F0FBDB-1DAE-47FE-ACF5-5622037175C1::net6.0::ConvertToPdf.WorkflowTest&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=8529fc6a_002D6a21_002D47d9_002D90fd_002D9d639414cafa/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Workflow" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=8529fc6a_002D6a21_002D47d9_002D90fd_002D9d639414cafa/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Workflow" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
-    &lt;TestId&gt;xUnit::F9F0FBDB-1DAE-47FE-ACF5-5622037175C1::net6.0::ConvertToPdf.Workflow&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::F9F0FBDB-1DAE-47FE-ACF5-5622037175C1::net6.0::ConvertToPdf.WorkflowTest&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
 	</wpf:ResourceDictionary>

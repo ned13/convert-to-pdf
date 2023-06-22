@@ -122,7 +122,7 @@ let changeExtension = fun ext path ->
     Path.ChangeExtension(path, ext)
 
 let moveFile = fun src dst ->
-    File.Move(src, dst)
+    File.Move(src, dst, true)
     dst
 
 let getSupportedTempFilePathName () =
@@ -268,37 +268,57 @@ module PrettyFormatTimeSpan =
         actual |> should equal expected
 
 module CreateWorkflow =
+    let srcFileName = "abc.xlsx"
+    let srcFileContentLength = 100L
+    let dstFileName = "abc.pdf"
+    let dstFileContentLength = 200
+
     let mockRetrieveSrcFileFunc = fun _ -> asyncResult {
-        let! srcExiFi = getTempFileName () |> ExistingFileInfo.create
+        let! srcTmpExiFi = getTempFileName () |> ExistingFileInfo.create
+        let srcTmpFilePathName = srcTmpExiFi |> ExistingFileInfo.getFilePathName
+        let srcFileDir = srcTmpExiFi |> ExistingFileInfo.getFileDir
+        let srcFilePathName = srcFileDir.FullName + "/" + srcFileName
+        let srcFilePathName' = moveFile srcTmpFilePathName srcFilePathName
+        let! srcFileExiFi = srcFilePathName' |> ExistingFileInfo.create
         return {
-            ContentType = "do-not-care"
-            ContentLength = 100
-            RetrievedFileInfo = srcExiFi
+            ContentType = mediaTypeNameXlsx
+            ContentLength = srcFileContentLength
+            RetrievedFileInfo = srcFileExiFi
         }
     }
 
     let mockToPdfFunc = fun srcFileName -> asyncResult {
         let! fakeSrcFi = ExistingFileInfo.create srcFileName
+        let srcFileName = fakeSrcFi |> ExistingFileInfo.getFileName
+        let! dstTmpExiFi = getTempFileName () |> ExistingFileInfo.create
+        let dstTmpFilePathName = dstTmpExiFi |> ExistingFileInfo.getFilePathName
+        let dstFileDir = dstTmpExiFi |> ExistingFileInfo.getFileDir
+        let dstFilePathName = dstFileDir.FullName + "/" + srcFileName
+        let dstFilePathName' = moveFile dstTmpFilePathName dstFilePathName
+        let dstFilePathName'' = changeExtension "pdf" dstFilePathName'
+        let dstFilePathName''' = moveFile dstFilePathName' dstFilePathName''
+        let! dstFileExiFi = dstFilePathName''' |> ExistingFileInfo.create
         return {
             SucceededMessage = "Ok"
             SrcFileInfo = fakeSrcFi
-            DstFileInfo = fakeSrcFi
+            DstFileInfo = dstFileExiFi
         }
     }
 
-    let mockWriteToStorageFunc = fun _ -> asyncResult {
-        let! dstExiFi = getTempFileName () |> ExistingFileInfo.create
+
+
+    let mockWriteToStorageFunc = fun (convertedFileContent: ConvertedFileContent) -> asyncResult {
         return {
-            ContentType = "do-not-care"
-            ContentLength = 100
-            StoredFileInfo = dstExiFi
+            ContentType = convertedFileContent.ContentType
+            ContentLength = convertedFileContent.ContentLength
+            StoredFileInfo = convertedFileContent.ConvertedFileInfo
             StoredPath = "do-not-care"
         }
     }
 
 
     [<Fact>]
-    let ``should return a successful result`` =
+    let ``should return a successful result`` () =
         let workflow = createWorkflow
                            mockLogFunc
                            mockRetrieveSrcFileFunc
@@ -306,11 +326,17 @@ module CreateWorkflow =
                            mockWriteToStorageFunc
 
         let runTestingFunc () = asyncResult {
-            let! result = workflow "abc.xlsx"
-            return result
+            let! r = workflow srcFileName
+            return r
         }
 
         let result = runTestingFunc () |> Async.RunSynchronously
         match result with
-        | Ok _ -> ()
+        | Ok wr ->
+            wr.SrcFileContentType |> should equal mediaTypeNameXlsx
+            wr.SrcFileContentLength |> should equal srcFileContentLength
+            wr.SrcFileName |> should equal srcFileName
+            wr.DstFileContentType |> should equal mediaTypeNamePdf
+            wr.DstFileContentLength |> should equal dstFileContentLength
+            wr.DstFileName |> should equal dstFileName
         | Error err -> Assert.Fail($"This should not happen, error={err}")

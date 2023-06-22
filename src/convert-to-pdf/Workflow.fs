@@ -119,7 +119,6 @@ let createWorkflow
     (writeToStorageFunc: WritePdfFileToStorage) : Workflow =
 
     let workflow = fun srcFileName -> asyncResult {
-
         let! supportedFileInfo = parseSupportedFileInfo srcFileName
 
         // Use function decorator technique
