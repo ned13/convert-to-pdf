@@ -9,8 +9,6 @@ open Workflow
 open FsUnit.Xunit
 open FsUnit.CustomMatchers
 open FsToolkit.ErrorHandling
-open FsCheck
-open FsCheck.Xunit
 open ConvertToPdf.Workflow.Types
 open FluentAssertions
 
@@ -270,19 +268,21 @@ module PrettyFormatTimeSpan =
 module CreateWorkflow =
     let srcFileName = "abc.xlsx"
     let srcFileContentLength = 100L
-    let dstFileName = "abc.pdf"
-    let dstFileContentLength = 200
+
+    let dstFileContentLength = 200L
 
     let mockRetrieveSrcFileFunc = fun _ -> asyncResult {
         let! srcTmpExiFi = getTempFileName () |> ExistingFileInfo.create
         let srcTmpFilePathName = srcTmpExiFi |> ExistingFileInfo.getFilePathName
+        let srcTmpBytes = Array.zeroCreate<byte> (int srcFileContentLength)
+        File.WriteAllBytes(srcTmpFilePathName, srcTmpBytes)
         let srcFileDir = srcTmpExiFi |> ExistingFileInfo.getFileDir
         let srcFilePathName = srcFileDir.FullName + "/" + srcFileName
         let srcFilePathName' = moveFile srcTmpFilePathName srcFilePathName
         let! srcFileExiFi = srcFilePathName' |> ExistingFileInfo.create
         return {
             ContentType = mediaTypeNameXlsx
-            ContentLength = srcFileContentLength
+            ContentLength = srcFileExiFi |> ExistingFileInfo.getFileLength
             RetrievedFileInfo = srcFileExiFi
         }
     }
@@ -292,6 +292,8 @@ module CreateWorkflow =
         let srcFileName = fakeSrcFi |> ExistingFileInfo.getFileName
         let! dstTmpExiFi = getTempFileName () |> ExistingFileInfo.create
         let dstTmpFilePathName = dstTmpExiFi |> ExistingFileInfo.getFilePathName
+        let dstTmpBytes = Array.zeroCreate<byte> (int dstFileContentLength)
+        File.WriteAllBytes(dstTmpFilePathName, dstTmpBytes)
         let dstFileDir = dstTmpExiFi |> ExistingFileInfo.getFileDir
         let dstFilePathName = dstFileDir.FullName + "/" + srcFileName
         let dstFilePathName' = moveFile dstTmpFilePathName dstFilePathName
@@ -338,5 +340,6 @@ module CreateWorkflow =
             wr.SrcFileName |> should equal srcFileName
             wr.DstFileContentType |> should equal mediaTypeNamePdf
             wr.DstFileContentLength |> should equal dstFileContentLength
-            wr.DstFileName |> should equal dstFileName
+            wr.DstFileName.Should()
+                .MatchRegex(@"abc-.+\.pdf", ?because=None) |> ignore
         | Error err -> Assert.Fail($"This should not happen, error={err}")
