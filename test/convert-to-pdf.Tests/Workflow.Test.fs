@@ -318,9 +318,16 @@ module CreateWorkflow =
         }
     }
 
+    type Sample =
+        static member Data() : IEnumerable<obj[]> =
+            seq {
+                yield [| UseNoParameterFun.createWorkflow |]
+                yield [| UseFunDecorator.createWorkflow |]
+            }
 
-    [<Fact>]
-    let ``should return a successful result`` () =
+    [<Theory>]
+    [<MemberData(nameof Sample.Data, MemberType=typeof<Sample>)>]
+    let ``should return a successful result`` (createWorkflow: LogFun -> RetrieveSrcFileFun -> ToPdfFun -> WritePdfFileToStorageFun -> WorkflowFun) =
         let workflow = createWorkflow
                            mockLogFunc
                            mockRetrieveSrcFileFunc

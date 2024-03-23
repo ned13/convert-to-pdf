@@ -12,6 +12,7 @@ open Amazon.S3.Model
 open Amazon.S3.Util
 open FsToolkit.ErrorHandling
 open ConverToPdf.Workflow
+open ConverToPdf.Workflow.UseNoParameterFun
 open ConverToPdf.ShellCommand
 open FsToolkit.ErrorHandling.Operator.AsyncResult
 open ConvertToPdf.Workflow.Types
@@ -43,7 +44,7 @@ type Function(s3Client: IAmazonS3) =
 
 
     // TODO: Need handle exception... otherwise the error type can't be inferred
-    let retrieveSrcFileFromS3 (s3Client: IAmazonS3) (logFunc: LogFunc) supportedFileInfo = taskResult {
+    let retrieveSrcFileFromS3 (s3Client: IAmazonS3) (logFunc: LogFun) supportedFileInfo = taskResult {
             let fileName = supportedFileInfo |> SupportedFileInfo.getFileName
             let req = GetObjectRequest(
                 BucketName = "iqc-convert-to-pdf",

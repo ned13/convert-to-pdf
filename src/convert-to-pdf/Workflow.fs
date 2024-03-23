@@ -3,7 +3,9 @@ module ConverToPdf.Workflow
 open System
 open System.Diagnostics
 open System.IO
+open ConvertToPdf
 open ConvertToPdf.Workflow.Types
+open FSharpPlus
 open FsToolkit.ErrorHandling
 
 
@@ -62,7 +64,7 @@ let internal renameExistingFile srcExistingFileInfo dstFilePathName =
     with
     | ex -> Result.Error $"File move operation failed with exception: {ex.Message}"
 
-let internal convertToPdf (logFunc: LogFunc) (toPdfFunc: ToPdfFunc) (srcFileContent: RetrievedFileContent) =
+let internal convertToPdf (logFunc: LogFun) (toPdfFunc: ToPdfFun) (srcFileContent: RetrievedFileContent) =
     asyncResult {
         let srcFilePathName = srcFileContent.RetrievedFileInfo |> ExistingFileInfo.getFilePathName
         let! toPdfResult = toPdfFunc srcFilePathName
@@ -72,7 +74,7 @@ let internal convertToPdf (logFunc: LogFunc) (toPdfFunc: ToPdfFunc) (srcFileCont
     }
 
 let internal renameConvertedToDstFileImpl renameExistingFile determineContentType
-    (logFunc: LogFunc) (toPdfResult: ConversionResult) =
+    (logFunc: LogFun) (toPdfResult: ConversionResult) =
      result {
         let convertedFileInfo = toPdfResult.DstFileInfo
         let convertedFilePathName = convertedFileInfo |> ExistingFileInfo.getFilePathName
@@ -97,62 +99,104 @@ let internal renameConvertedToDstFileImpl renameExistingFile determineContentTyp
         }
     }
 
-let internal renameConvertedToDstFile (logFunc: LogFunc) (toPdfResult: ConversionResult) =
+let internal renameConvertedToDstFile (logFunc: LogFun) (toPdfResult: ConversionResult) =
      renameConvertedToDstFileImpl renameExistingFile determineContentType logFunc toPdfResult
 
 let internal prettyFormatTimeSpan (timeSpan: TimeSpan) =
     $"%02d{timeSpan.Hours}:%02d{timeSpan.Minutes}:%02d{timeSpan.Seconds}.%03d{timeSpan.Milliseconds}"
 
-let private withExecutionTime (aFunc: unit -> Async<Result<'a, 'b>>) =
-    fun () -> asyncResult {
-        let stopWatch = Stopwatch()
-        stopWatch.Start()
-        let! r = aFunc ()
-        stopWatch.Stop()
-        return r, stopWatch.Elapsed
-    }
-
-let createWorkflow
-    (logFunc: LogFunc)
-    (retrieveSrcFileFunc: RetrieveSrcFileFunc)
-    (toPdfFunc: ToPdfFunc)
-    (writeToStorageFunc: WritePdfFileToStorage) : Workflow =
-
-    let workflow = fun srcFileName -> asyncResult {
-        let! supportedFileInfo = parseSupportedFileInfo srcFileName
-
-        // Use function decorator technique
-        let retrieveSrcFileFunc' = (fun () -> retrieveSrcFileFunc supportedFileInfo) |> withExecutionTime
-        let! retrievedFileContent, retrieveSrcFileElapsed =  retrieveSrcFileFunc' ()
-
-        let convertToPdf' = (fun () -> convertToPdf logFunc toPdfFunc retrievedFileContent) |> withExecutionTime
-        let! toPdfResult, convertToPdfElapsed = convertToPdf' ()
-
-        let renameConvertedToDstFile' = (fun () -> renameConvertedToDstFile logFunc toPdfResult |> Async.retn)
-                                        |> withExecutionTime
-        let! convertedFileContent, renameConvertedToDstFileElapsed = renameConvertedToDstFile' ()
-
-        let writeToStorageFunc' = (fun () -> writeToStorageFunc convertedFileContent) |> withExecutionTime
-        let! wroteFileContentInfo, writeToStorageElapsed = writeToStorageFunc' ()
-
-        let totalElapsed = retrieveSrcFileElapsed
-                           + convertToPdfElapsed
-                           + renameConvertedToDstFileElapsed
-                           + writeToStorageElapsed
-        return {
-            SrcFileContentType = retrievedFileContent.ContentType
-            SrcFileContentLength = retrievedFileContent.ContentLength
-            SrcFileName = retrievedFileContent.RetrievedFileInfo |> ExistingFileInfo.getFileName
-            DstFileContentType = wroteFileContentInfo.ContentType
-            DstFileContentLength = wroteFileContentInfo.ContentLength
-            DstFileName = wroteFileContentInfo.StoredFileInfo |> ExistingFileInfo.getFileName
-            RetrieveSrcFileElapsed = retrieveSrcFileElapsed |> prettyFormatTimeSpan
-            ConvertSubWorkflowElapsed = convertToPdfElapsed + renameConvertedToDstFileElapsed
-                                        |> prettyFormatTimeSpan
-            WriteToStorageElapsed = writeToStorageElapsed |> prettyFormatTimeSpan
-            TotalElapsed = totalElapsed |> prettyFormatTimeSpan
+module UseNoParameterFun =
+    let private withExecutionTime (aFunc: unit -> Async<Result<'a, 'b>>) =
+        fun () -> asyncResult {
+            let stopWatch = Stopwatch()
+            stopWatch.Start()
+            let! r = aFunc ()
+            stopWatch.Stop()
+            return r, stopWatch.Elapsed
         }
-    }
 
-    workflow
+    let createWorkflow
+        (logFun: LogFun)
+        (retrieveSrcFile: RetrieveSrcFileFun)
+        (toPdf: ToPdfFun)
+        (writeToStorage: WritePdfFileToStorageFun) : WorkflowFun =
+
+        let workflow = fun srcFileName -> asyncResult {
+            let! supportedFileInfo = parseSupportedFileInfo srcFileName
+
+            let retrieveSrcFileFunc' = (fun () -> retrieveSrcFile supportedFileInfo) |> withExecutionTime
+            let! retrievedFileContent, retrieveSrcFileElapsed =  retrieveSrcFileFunc' ()
+
+            let convertToPdf' = (fun () -> convertToPdf logFun toPdf retrievedFileContent) |> withExecutionTime
+            let! toPdfResult, convertToPdfElapsed = convertToPdf' ()
+
+            let renameConvertedToDstFile' = (fun () -> renameConvertedToDstFile logFun toPdfResult |> Async.retn)
+                                            |> withExecutionTime
+            let! convertedFileContent, renameConvertedToDstFileElapsed = renameConvertedToDstFile' ()
+
+            let writeToStorageFunc' = (fun () -> writeToStorage convertedFileContent) |> withExecutionTime
+            let! wroteFileContentInfo, writeToStorageElapsed = writeToStorageFunc' ()
+
+            let totalElapsed = retrieveSrcFileElapsed
+                               + convertToPdfElapsed
+                               + renameConvertedToDstFileElapsed
+                               + writeToStorageElapsed
+            return {
+                SrcFileContentType = retrievedFileContent.ContentType
+                SrcFileContentLength = retrievedFileContent.ContentLength
+                SrcFileName = retrievedFileContent.RetrievedFileInfo |> ExistingFileInfo.getFileName
+                DstFileContentType = wroteFileContentInfo.ContentType
+                DstFileContentLength = wroteFileContentInfo.ContentLength
+                DstFileName = wroteFileContentInfo.StoredFileInfo |> ExistingFileInfo.getFileName
+                RetrieveSrcFileElapsed = retrieveSrcFileElapsed |> prettyFormatTimeSpan
+                ConvertSubWorkflowElapsed = convertToPdfElapsed + renameConvertedToDstFileElapsed
+                                            |> prettyFormatTimeSpan
+                WriteToStorageElapsed = writeToStorageElapsed |> prettyFormatTimeSpan
+                TotalElapsed = totalElapsed |> prettyFormatTimeSpan
+            }
+        }
+
+        workflow
+
+module UseFunDecorator =
+    open Utility
+
+    let createWorkflow
+        (logFun: LogFun)
+        (retrieveSrcFile: RetrieveSrcFileFun)
+        (toPdf: ToPdfFun)
+        (writeToStorage: WritePdfFileToStorageFun) : WorkflowFun =
+
+        let retrieveSrcFile' = retrieveSrcFile |> withExecutionTime1Parameter
+        let convertToPdf' = convertToPdf |> withExecutionTime3Parameter
+        let renameConvertedToDstFile' = renameConvertedToDstFile |> aFunReturnAsync |> withExecutionTime2Parameter
+        let writeToStorage' = writeToStorage |> withExecutionTime1Parameter
+
+        let workflow = fun srcFileName -> asyncResult {
+            let! supportedFileInfo = parseSupportedFileInfo srcFileName
+            let! retrievedFileContent, retrieveSrcFileElapsed =  retrieveSrcFile' supportedFileInfo
+            let! toPdfResult, convertToPdfElapsed = convertToPdf' logFun toPdf retrievedFileContent
+            let! convertedFileContent, renameConvertedToDstFileElapsed = renameConvertedToDstFile' logFun toPdfResult
+            let! wroteFileContentInfo, writeToStorageElapsed = writeToStorage' convertedFileContent
+
+            let totalElapsed = retrieveSrcFileElapsed
+                               + convertToPdfElapsed
+                               + renameConvertedToDstFileElapsed
+                               + writeToStorageElapsed
+            return {
+                SrcFileContentType = retrievedFileContent.ContentType
+                SrcFileContentLength = retrievedFileContent.ContentLength
+                SrcFileName = retrievedFileContent.RetrievedFileInfo |> ExistingFileInfo.getFileName
+                DstFileContentType = wroteFileContentInfo.ContentType
+                DstFileContentLength = wroteFileContentInfo.ContentLength
+                DstFileName = wroteFileContentInfo.StoredFileInfo |> ExistingFileInfo.getFileName
+                RetrieveSrcFileElapsed = retrieveSrcFileElapsed |> prettyFormatTimeSpan
+                ConvertSubWorkflowElapsed = convertToPdfElapsed + renameConvertedToDstFileElapsed
+                                            |> prettyFormatTimeSpan
+                WriteToStorageElapsed = writeToStorageElapsed |> prettyFormatTimeSpan
+                TotalElapsed = totalElapsed |> prettyFormatTimeSpan
+            }
+        }
+
+        workflow
 

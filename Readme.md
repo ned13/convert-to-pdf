@@ -197,7 +197,9 @@ Refer to following links to get more information:
 - aws-lambda-tools-defaults.json - default argument settings for use with Visual Studio and command line deployment tools for AWS
 - Write custom serializer: https://aws.amazon.com/blogs/compute/introducing-the-net-6-runtime-for-aws-lambda/
 - Lambda Function input and output: https://docs.aws.amazon.com/lambda/latest/dg/csharp-handler.html#csharp-handler-types
-- Consider to use AWS EventBridge to forward S3 new Object event to Lambda. When a new file is put to S3 then function is triggered to convert. 
+- [ ] Consider to use AWS EventBridge to forward S3 new Object event to Lambda. When a new file is put to S3 then function is triggered to convert. The function need to process S3Event or some kind of Event.
+- [ ] Consider to convert the .NET version to 8.0, the performance metric is bad. ~=200MB memory, 15 seconds, which is larger and slower than Node.js version.
+- [ ] Consider to use QuestPDF, Spire.Office, Aspose or other 3rd party libraries, but the original requirement is to read office document...
 
 
 ## Not Used

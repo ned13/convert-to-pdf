@@ -21,6 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="Utility.fs" />
         <Compile Include="ShellCommand.fs" />
         <Compile Include="Workflow.Types.fs" />
         <Compile Include="Workflow.fs" />
