@@ -73,6 +73,9 @@ dotnet publish -c Release -o /app/publish --framework "net6.0" /p:GenerateRuntim
 
 - In above command, specify `"net6.0"` since current(2024-04) AWS provided .NET base image only support .NET 6.0. 
 - In above command, specify `linux-x64` option in dotnet publish command https://learn.microsoft.com/zh-tw/dotnet/core/deploying/ready-to-run
+- Build from Stable to Frequently Changing 
+    * Make your most frequently occurring changes as late in your Dockerfile as possible
+
 - Some reference for build .NET image for Lambda function:
     * [C# and AWS Lambdas, Part 6 – .NET 5 inside a Container inside a Lambda](https://nodogmablog.bryanhogan.net/2021/03/c-and-aws-lambdas-part-6-net-5-inside-a-container-inside-a-lambda/?utm_source=pocket_saves)
     * [C# and AWS Lambdas, Part 8 - .NET 6, inside a Container, inside a Lambda](https://nodogmablog.bryanhogan.net/2021/03/c-and-aws-lambdas-part-8-net-6-inside-a-container-inside-a-lambda/?utm_source=pocket_saves)
@@ -160,12 +163,21 @@ I tried this way since I think I can use Lambda *Layer* to provide LibreOffice i
 
 
 ### Prepare S3 Bucket
-- I got AmazonS3FullAccess, you should have getObject and putObject at least.
+- My IAM account got AmazonS3FullAccess, you should have getObject and putObject at least.
 - Configure Lambda Function's role to access S3 bucket: https://repost.aws/zh-Hant/knowledge-center/lambda-execution-role-s3-bucket
-- create a bucket `iqc-convert-to-pdf`
-- create a folder `iqc-convert-to-pdf/in`, for incoming file.
-- create a folder `iqc-convert-to-pdf/out`, for converted file.
-- since this Lambda function is for POC, the bucket is hard-coded in code. 
+- Create a bucket `iqc-convert-to-pdf`
+- Create a folder `iqc-convert-to-pdf/in`, for incoming file.
+- Create a folder `iqc-convert-to-pdf/out`, for converted file.
+- Since this Lambda function is for POC, the bucket is hard-coded in code. 
+- Create a event notification to notify Labmda function `conver-to-pdf`
+    * Event name: InFolderObjectIsAddedOrModified
+    * Prefix: in/
+    * Event types: Object creation: ✔️All object created events
+    * Destination: Lambda fuction
+    * Specify Lambda function: Choose from your Lambda functions.
+
+- After the S3 event notification is created, a *Resource-based policy statements* would be created for S3 invoking Lambda function.
+
 
 
 ## Run
@@ -197,8 +209,12 @@ Refer to following links to get more information:
 - aws-lambda-tools-defaults.json - default argument settings for use with Visual Studio and command line deployment tools for AWS
 - Write custom serializer: https://aws.amazon.com/blogs/compute/introducing-the-net-6-runtime-for-aws-lambda/
 - Lambda Function input and output: https://docs.aws.amazon.com/lambda/latest/dg/csharp-handler.html#csharp-handler-types
-- [ ] Consider to use AWS EventBridge to forward S3 new Object event to Lambda. When a new file is put to S3 then function is triggered to convert. The function need to process S3Event or some kind of Event.
-- [ ] Consider to convert the .NET version to 8.0, the performance metric is bad. ~=200MB memory, 15 seconds, which is larger and slower than Node.js version.
+- [x] Consider to use AWS EventBridge to forward S3 new Object event to Lambda. When a new file is put to S3 then function is triggered to convert. The function need to process S3Event or some kind of Event.
+    > Completed using S3 event notification, doesn't consider to use EventBridge in this phase.
+  
+- [x] Consider to convert the .NET version to 8.0, the performance metric is bad. ~=200MB memory, 15 seconds, which is larger and slower than Node.js version.
+    > Failed, the dotnet8.0 base image doesn't have yum to install libreoffice.
+
 - [ ] Consider to use QuestPDF, Spire.Office, Aspose or other 3rd party libraries, but the original requirement is to read office document...
 
 

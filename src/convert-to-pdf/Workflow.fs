@@ -200,3 +200,5 @@ module UseFunDecorator =
 
         workflow
 
+module UseWriter =
+    ()

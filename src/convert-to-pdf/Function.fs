@@ -4,18 +4,21 @@
 open System
 open System.IO
 open System.Threading
+open System.Web
 open Amazon.Lambda.Core
 open Amazon.Lambda.S3Events
 
 open Amazon.S3
 open Amazon.S3.Model
 open Amazon.S3.Util
+open FSharpPlus
 open FsToolkit.ErrorHandling
 open ConverToPdf.Workflow
 open ConverToPdf.Workflow.UseNoParameterFun
 open ConverToPdf.ShellCommand
 open FsToolkit.ErrorHandling.Operator.AsyncResult
 open ConvertToPdf.Workflow.Types
+
 
 
 
@@ -180,12 +183,11 @@ type Function(s3Client: IAmazonS3) =
     /// This method is called for every Lambda invocation. This method takes in an S3 event object and can be used
     /// to respond to S3 notifications.
     /// </summary>
-    /// <param name="event"></param>
+    /// <param name="s3Event"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    // member __.FunctionHandler (event: S3Event) (context: ILambdaContext) = taskResult {
-    member __.FunctionHandler (event: string) (context: ILambdaContext) = task {
-
+    member __.FunctionHandler (s3Event: S3Event) (context: ILambdaContext) = task {
+    // member __.FunctionHandler (event: string) (context: ILambdaContext) = task {
         // Verify container can run, just ToUpper incoming string.
         // return event.ToUpper()
 
@@ -198,8 +200,7 @@ type Function(s3Client: IAmazonS3) =
         // let! _ = tryCmd event
         // return event
 
-
-        let logInformation = context.Logger.LogInformation
+        let logInformation message = context.Logger.LogInformation(message)
 
         let retrieveSrcFileFromTemp' = retrieveSrcFileFromTemp >> Async.retn
         let retrieveSrcFileFromS3' = retrieveSrcFileFromS3 s3Client logInformation >> Async.AwaitTask
@@ -209,7 +210,6 @@ type Function(s3Client: IAmazonS3) =
 
         let writePdfFileToTmp' = writePdfFileToTmp >> AsyncResult.retn
         let writePdfFileToS3' = writePdfFileToS3 s3Client logInformation >> Async.AwaitTask
-
 
         let workflow = createWorkflow
                            logInformation
@@ -224,9 +224,25 @@ type Function(s3Client: IAmazonS3) =
         //                     toPdfByLibreOffice' // toPdfNothing'
         //                     writePdfFileToTmp'
 
+        let! workflowResults =
+            s3Event.Records
+                |> map (fun record ->
+                    let bucketName = record.S3.Bucket.Name
+                    let key = HttpUtility.UrlDecode(record.S3.Object.Key)
+                    let fileName = Path.GetFileName(key)
+                    logInformation $"Extracted file name={fileName}, bucket={bucketName}, key={key} from S3Event."
+                    workflow fileName
+                )
+                |> Async.Sequential
+
+        let workflowResult = workflowResults
+                                |> toList
+                                |> List.sequenceResultA
+
         // Null string should not exist in F#, Correct it before invoking workflow.
-        let fileName = event |> Option.ofNull |> Option.defaultValue ""
-        let! workflowResult = workflow fileName
+        // let fileName = event |> Option.ofNull |> Option.defaultValue ""
+        // let! workflowResult = workflow fileName
+
         return match workflowResult with
                 | Ok r -> r.ToString()
                 | Error err -> err.ToString()
